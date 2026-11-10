@@ -307,6 +307,16 @@ class TestFormatting(TestCase):
         return orig_obj, json.dumps(orig_obj)
 
     @filetype_test
+    def test_jsonl_formatting(self):
+        # A JSON Lines document is a list of records, each of which is serialized on its own line.
+        orig_obj = [
+            TestFormatting.make_random_obj(force_string_keys=True)
+            for _ in range(random.randint(0, 5))
+        ]
+        representation = ''.join(f'{json.dumps(record)}\n' for record in orig_obj)
+        return orig_obj, representation
+
+    @filetype_test
     def test_csv_formatting(self):
         orig_obj = [
             [TestFormatting.make_random_non_container(

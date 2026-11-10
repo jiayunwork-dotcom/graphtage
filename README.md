@@ -5,9 +5,9 @@
 [![Slack Status](https://slack.empirehacking.nyc/badge.svg)](https://slack.empirehacking.nyc)
 
 Graphtage is a command-line utility and [underlying library](https://trailofbits.github.io/graphtage/latest/library.html)
-for semantically comparing and merging tree-like structures, such as JSON, JSON5, XML, HTML, YAML, TOML, INI, CSV,
-plist, and Python pickle files. Its name is a portmanteau of “graph” and “graftage”—the latter being the horticultural
-practice of joining two trees together such that they grow as one.
+for semantically comparing and merging tree-like structures, such as JSON, JSON Lines (JSONL/NDJSON), JSON5, XML, HTML,
+YAML, TOML, INI, CSV, plist, and Python pickle files. Its name is a portmanteau of “graph” and “graftage”—the latter
+being the horticultural practice of joining two trees together such that they grow as one.
 
 ```console
 $ echo Original: && cat original.json && echo Modified: && cat modified.json
@@ -66,13 +66,24 @@ $ pip3 install 'graphtage[dev]'
 ### Input File Types
 Graphtage infers the type of each input file from its extension. To state the type instead of inferring it, use
 `--from-<type>` for the first file and `--to-<type>` for the second. Both flags exist for every format Graphtage
-supports: `csv`, `html`, `ini`, `json`, `json5`, `pickle`, `plist`, `toml`, `xml`, and `yaml`. For example, to read a
-JSON document whose name does not end in `.json`:
+supports: `csv`, `html`, `ini`, `json`, `json5`, `jsonl`, `pickle`, `plist`, `toml`, `xml`, and `yaml`. For example, to
+read a JSON document whose name does not end in `.json`:
 ```console
 $ graphtage --from-json config.txt config.json
 ```
 `--from-mime` and `--to-mime` do the same thing but take a MIME type rather than a format name, which matters for the
 formats that Graphtage registers under more than one type. Run `graphtage --help` for the accepted values.
+
+### JSON Lines
+Files ending in `.jsonl` or `.ndjson` are recognized as [JSON Lines](https://jsonlines.org/): each non-empty line is
+an independent JSON value, and the whole file is treated as an ordered list of records. CRLF line endings are accepted,
+and blank lines are tolerated and ignored rather than parsed as JSON values. If a non-empty line is not valid JSON,
+the error names the file and the offending line number and the exit status is `2`.
+
+Each record's diff is printed on its own line as compact JSON, with the same edit markers as the rest of Graphtage for
+changed fields, inserted records (`++...++`), and removed records (`~~...~~`). The output has no enclosing square
+brackets and no commas between records, so it remains valid JSON Lines. Use `--from-jsonl`, `--to-jsonl`, and
+`--format jsonl` to force the type when the extension is missing or misleading.
 
 ### Output Formatting
 Graphtage performs an analysis on an intermediate representation of the trees that is divorced from the filetypes of the

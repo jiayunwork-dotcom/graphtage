@@ -86,6 +86,10 @@ def register_mimetypes():
         mimetypes.suffix_map['.yaml'] = '.yml'
     if '.json5' not in mimetypes.types_map:
         mimetypes.add_type('application/json5', '.json5')
+    if '.jsonl' not in mimetypes.types_map:
+        mimetypes.add_type('application/jsonl', '.jsonl')
+    if '.ndjson' not in mimetypes.types_map:
+        mimetypes.add_type('application/jsonl', '.ndjson')
     if '.toml' not in mimetypes.types_map:
         mimetypes.add_type('application/toml', '.toml')
     if '.ini' not in mimetypes.types_map:
@@ -99,8 +103,8 @@ def register_mimetypes():
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        description='A diff utility for tree-like files such as JSON, JSON5, XML, HTML, YAML, TOML, INI, CSV, plist, '
-                    'and Python pickle.'
+        description='A diff utility for tree-like files such as JSON, JSON Lines (JSONL/NDJSON), JSON5, XML, HTML, '
+                    'YAML, TOML, INI, CSV, plist, and Python pickle.'
     )
     parser.add_argument('FROM_PATH', type=str, nargs='?', default='-',
                         help='the source file to diff; pass \'-\' to read from STDIN')

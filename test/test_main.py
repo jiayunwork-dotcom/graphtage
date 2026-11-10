@@ -68,6 +68,44 @@ class TestCommandLine(unittest.TestCase):
         status, _ = self.run_graphtage(from_path, to_path)
         self.assertEqual(EXIT_ERROR, status)
 
+    def test_jsonl_extension_is_detected(self):
+        from_path = self.write('one.jsonl', '{"a": 1}\n')
+        to_path = self.write('two.jsonl', '{"a": 2}\n')
+        status, output = self.run_graphtage(from_path, to_path)
+        self.assertEqual(EXIT_DIFFERENCES_FOUND, status)
+        self.assertEqual('{"a": 1 -> 2}', output.splitlines()[0])
+
+    def test_ndjson_extension_is_detected(self):
+        from_path = self.write('one.ndjson', '{"a": 1}\r\n')
+        to_path = self.write('two.ndjson', '{"a": 1}\r\n\r\n{"b": 2}\r\n')
+        status, output = self.run_graphtage(from_path, to_path)
+        self.assertEqual(EXIT_DIFFERENCES_FOUND, status)
+        self.assertEqual(['{"a": 1}', '++{"b": 2}++'], output.rstrip('\n').split('\n'))
+
+    def test_from_and_to_jsonl_flags(self):
+        from_path = self.write('one_without_an_extension', '{"a": 1}\n')
+        to_path = self.write('two_without_an_extension', '{"a": 2}\n')
+        status, output = self.run_graphtage('--from-jsonl', '--to-jsonl', from_path, to_path)
+        self.assertEqual(EXIT_DIFFERENCES_FOUND, status)
+        self.assertIn('1 -> 2', output)
+
+    def test_format_jsonl_prints_one_record_per_line(self):
+        from_path = self.write('one.jsonl', '{"a": 1}\n{"b": 2}\n')
+        to_path = self.write('two.jsonl', '{"a": 1}\n{"b": 3}\n')
+        status, output = self.run_graphtage('--format', 'jsonl', from_path, to_path)
+        self.assertEqual(EXIT_DIFFERENCES_FOUND, status)
+        self.assertEqual(['{"a": 1}', '{"b": 2 -> 3}'], output.rstrip('\n').split('\n'))
+
+    def test_jsonl_parse_failure_names_file_and_line(self):
+        from_path = self.write('one.jsonl', '{"a": 1}\n')
+        to_path = self.write('two.jsonl', '{"a": 1}\n{oops\n')
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            status = main(['graphtage', '--no-status', from_path, to_path])
+        self.assertEqual(EXIT_ERROR, status)
+        self.assertIn('two.jsonl', err.getvalue())
+        self.assertIn('line 2', err.getvalue())
+
     def test_dumpversion_prints_a_bare_version_string(self):
         """`-dumpversion` joined over the version string, so it printed `0 . 3 . 1` instead of `0.3.1`."""
         out = io.StringIO()

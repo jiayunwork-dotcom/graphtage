@@ -73,6 +73,15 @@ class TestMimeOptions(GitDiffTestCase):
             git.mime_options('src/conf.json', [])
         )
 
+    def test_jsonl_inferred_from_repository_path(self):
+        from graphtage.__main__ import register_mimetypes
+        register_mimetypes()
+        for repository_path in ('logs/events.jsonl', 'logs/events.ndjson'):
+            self.assertEqual(
+                ['--from-mime=application/jsonl', '--to-mime=application/jsonl'],
+                git.mime_options(repository_path, [])
+            )
+
     def test_forwarded_options_take_precedence(self):
         """An explicit type from the user must not collide with the inferred one."""
         self.assertEqual(['--to-mime=application/json'], git.mime_options('conf.json', ['--from-json']))
@@ -112,6 +121,19 @@ class TestArgumentMapping(GitDiffTestCase):
         arguments = [*self.git_arguments('old.json', one, two), 'new.json', 'similarity']
         status, _ = self.run_driver(*arguments)
         self.assertEqual(EXIT_SUCCESS, status)
+
+    def test_jsonl_repository_path_is_drived(self):
+        """Git's temporary copies lack extensions, so a .jsonl repo path must route through the JSON Lines filetype."""
+        one = self.write('extensionless_one', '{"id": 1, "v": "foo"}\n')
+        two = self.write('extensionless_two', '{"id": 1, "v": "foos"}\n{"id": 2}\n')
+        status, output = self.run_driver(*self.git_arguments('logs/events.jsonl', one, two))
+        self.assertEqual(EXIT_SUCCESS, status)
+        self.assertIn('logs/events.jsonl', output)
+        # One record per line, with the field and record edit markers intact.
+        self.assertEqual(
+            ['logs/events.jsonl', '{"id": 1, "v": "foo++s++"}', '++{"id": 2}++'],
+            output.rstrip('\n').split('\n')
+        )
 
     def test_forwarded_options_reach_graphtage(self):
         one = self.write('one.json', JSON_ONE)
